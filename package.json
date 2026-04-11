@@ -1,0 +1,20 @@
+{
+  "name": "vite-react-ts-powersync-postgres-tanstack-db",
+  "private": true,
+  "packageManager": "pnpm@10.27.0",
+  "scripts": {
+    "dev": "concurrently -k -n server,app \"pnpm --dir server dev\" \"pnpm --dir app dev\"",
+    "dev:app": "pnpm --dir app dev",
+    "dev:server": "pnpm --dir server dev",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down -v",
+    "db:reset": "docker compose down -v && docker compose up -d",
+    "db:logs": "docker compose logs -f postgres powersync",
+    "build": "pnpm --dir server build && pnpm --dir app build",
+    "typecheck": "pnpm --dir server typecheck && pnpm --dir app typecheck",
+    "powersync:token": "powersync generate token --directory=powersync --subject=demo-user"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
