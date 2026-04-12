@@ -14,7 +14,7 @@ This repo uses the same shape as the PowerSync workbench examples:
 - Frontend: React 19 + Vite + TypeScript
 - Local-first sync: `@powersync/web` + `@powersync/react`
 - Reactive collections: `@tanstack/react-db` + `@tanstack/powersync-db-collection`
-- Backend: Express + PostgreSQL
+- Backend: Hono + PostgreSQL
 - Infra: Docker Compose for Postgres and PowerSync
 
 ## Quick Start

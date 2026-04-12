@@ -1,6 +1,7 @@
-import cors from "cors";
 import dotenv from "dotenv";
-import express from "express";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { serve } from "@hono/node-server";
 import { SignJWT } from "jose";
 import { fileURLToPath } from "node:url";
 import { Pool, type PoolClient } from "pg";
@@ -46,54 +47,48 @@ const uploadRequestSchema = z.object({
   operations: z.array(operationSchema),
 });
 
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: "1mb" }));
+const app = new Hono();
+app.use("*", cors());
 
-app.get("/api/health", async (_request, response) => {
+app.get("/api/health", async (c) => {
   try {
     await pool.query("SELECT 1");
-    response.json({ ok: true });
+    return c.json({ ok: true });
   } catch (error) {
-    response.status(500).json({
+    return c.json({
       ok: false,
       error: error instanceof Error ? error.message : "Unknown database error",
-    });
+    }, 500);
   }
 });
 
-app.get("/api/auth/token", async (request, response, next) => {
-  try {
-    const requestedUserId = typeof request.query.user_id === "string" ? request.query.user_id : undefined;
-    const userId = requestedUserId || env.DEFAULT_USER_ID;
+app.get("/api/auth/token", async (c) => {
+  const requestedUserId = c.req.query("user_id");
+  const userId = requestedUserId || env.DEFAULT_USER_ID;
 
-    const token = await new SignJWT({})
-      .setProtectedHeader({ alg: "HS256", kid: env.PS_JWT_KID })
-      .setSubject(userId)
-      .setAudience(env.PS_JWT_AUDIENCE)
-      .setIssuer(env.PS_JWT_ISSUER)
-      .setIssuedAt()
-      .setExpirationTime("12h")
-      .sign(new TextEncoder().encode(env.PS_JWT_SECRET));
+  const token = await new SignJWT({})
+    .setProtectedHeader({ alg: "HS256", kid: env.PS_JWT_KID })
+    .setSubject(userId)
+    .setAudience(env.PS_JWT_AUDIENCE)
+    .setIssuer(env.PS_JWT_ISSUER)
+    .setIssuedAt()
+    .setExpirationTime("12h")
+    .sign(new TextEncoder().encode(env.PS_JWT_SECRET));
 
-    response.json({
-      token,
-      powersyncUrl: env.VITE_POWERSYNC_URL,
-      userId,
-    });
-  } catch (error) {
-    next(error);
-  }
+  return c.json({
+    token,
+    powersyncUrl: env.VITE_POWERSYNC_URL,
+    userId,
+  });
 });
 
-app.post("/api/powersync/upload", async (request, response) => {
-  const parsed = uploadRequestSchema.safeParse(request.body);
+app.post("/api/powersync/upload", async (c) => {
+  const parsed = uploadRequestSchema.safeParse(await c.req.json());
   if (!parsed.success) {
-    response.json({
+    return c.json({
       success: false,
       error: parsed.error.flatten(),
     });
-    return;
   }
 
   const client = await pool.connect();
@@ -118,11 +113,11 @@ app.post("/api/powersync/upload", async (request, response) => {
     }
 
     await client.query("COMMIT");
-    response.json({ success: true });
+    return c.json({ success: true });
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("PowerSync upload failed", error);
-    response.json({
+    return c.json({
       success: false,
       error: error instanceof Error ? error.message : "Unknown upload error",
     });
@@ -131,7 +126,10 @@ app.post("/api/powersync/upload", async (request, response) => {
   }
 });
 
-app.listen(Number(env.SERVER_PORT), () => {
+serve({
+  fetch: app.fetch,
+  port: Number(env.SERVER_PORT),
+}, () => {
   console.log(`Backend listening on http://localhost:${env.SERVER_PORT}`);
 });
 
