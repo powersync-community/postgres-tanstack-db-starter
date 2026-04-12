@@ -2,6 +2,8 @@
 
 A minimal starter template for a self-hosted `Postgres + PowerSync + TanStack DB` stack.
 
+Looking for the TanStack Start version? See the [`tanstack-start-server-functions`](https://github.com/powersync-community/postgres-tanstack-db-starter/tree/tanstack-start-server-functions) branch.
+
 This repo uses the same shape as the PowerSync workbench examples:
 
 - Dockerized PostgreSQL with logical replication enabled
