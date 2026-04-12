@@ -2,19 +2,21 @@
 
 A minimal starter template for a self-hosted `Postgres + PowerSync + TanStack DB` stack.
 
+The Hono + Vite variant stays on [`main`](https://github.com/powersync-community/postgres-tanstack-db-starter/tree/main).
+
 This repo uses the same shape as the PowerSync workbench examples:
 
 - Dockerized PostgreSQL with logical replication enabled
 - A self-hosted PowerSync service pointed at that database
-- A custom backend that issues PowerSync JWTs and applies queued writes
-- A Vite + React + TanStack DB frontend backed by PowerSync local SQLite
+- A TanStack Start app that serves both the UI and server functions
+- PowerSync-backed local SQLite collections through TanStack DB
 
 ## Stack
 
-- Frontend: React 19 + Vite + TypeScript
+- App framework: React 19 + TanStack Start + TypeScript
 - Local-first sync: `@powersync/web` + `@powersync/react`
 - Reactive collections: `@tanstack/react-db` + `@tanstack/powersync-db-collection`
-- Backend: Hono + PostgreSQL
+- Server functions: TanStack Start + PostgreSQL
 - Infra: Docker Compose for Postgres and PowerSync
 
 ## Quick Start
@@ -37,18 +39,17 @@ pnpm install
 pnpm db:up
 ```
 
-4. Start the frontend and backend:
+4. Start the app:
 
 ```bash
 pnpm dev
 ```
 
-5. Open `http://localhost:5173`
+5. Open `http://localhost:3001`
 
 ## Services
 
-- React app: `http://localhost:5173`
-- Backend API: `http://localhost:3001`
+- TanStack Start app: `http://localhost:3001`
 - PowerSync: `http://localhost:8080`
 - Postgres: `localhost:5432`
 
@@ -58,29 +59,28 @@ pnpm dev
 pnpm db:logs        # Follow Postgres + PowerSync logs
 pnpm db:down        # Stop services and remove volumes
 pnpm db:reset       # Recreate the database from scratch
-pnpm typecheck      # Run TypeScript checks for app + server
-pnpm build          # Build the app + server
+pnpm typecheck      # Run TypeScript checks
+pnpm build          # Build the TanStack Start app
 pnpm powersync:token
 ```
 
 ## How It Works
 
 1. The frontend creates TanStack DB collections on top of a PowerSync-backed SQLite database.
-2. `fetchCredentials()` asks the backend for a PowerSync JWT.
+2. `fetchCredentials()` calls a TanStack Start server function for a PowerSync JWT.
 3. PowerSync syncs `lists` and `todos` from Postgres using Sync Streams.
 4. Local writes are queued in SQLite.
-5. `uploadData()` posts queued CRUD operations to the backend.
-6. The backend writes them to Postgres in a transaction.
+5. `uploadData()` calls a TanStack Start server function with queued CRUD operations.
+6. The server function writes them to Postgres in a transaction.
 7. PowerSync replicates those changes back down to every client.
 
 ## Project Layout
 
 ```text
 .
-├── app/                # React + TanStack DB frontend
+├── src/                # TanStack Start routes, server functions, and UI
 ├── postgres/init/      # Postgres schema + seed data
 ├── powersync/          # PowerSync self-hosted config
-├── server/             # Token endpoint + upload API
 └── docker-compose.yml  # Local Postgres + PowerSync stack
 ```
 
@@ -88,4 +88,4 @@ pnpm powersync:token
 
 - The template uses a development HS256 key so it stays copy-paste runnable. Replace it with your real auth flow before shipping.
 - The upload endpoint uses a strict table allowlist, but it still assumes a trusted local client. Add real authentication and authorization in production.
-- Keep your Postgres schema, `powersync/sync-config.yaml`, and the client schema in `app/src/lib/powersync/schema.ts` aligned.
+- Keep your Postgres schema, `powersync/sync-config.yaml`, and the client schema in `src/lib/powersync/schema.ts` aligned.
