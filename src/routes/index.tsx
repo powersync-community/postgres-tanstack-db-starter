@@ -5,7 +5,7 @@ import {
   createCompositeComponent,
   renderServerComponent,
 } from "@tanstack/react-start/rsc";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { WorkspaceApp } from "~/components/workspace-app";
 import { getPostgresSnapshot } from "~/lib/server-fns";
 
@@ -81,6 +81,7 @@ const getLanding = createServerFn({ method: "GET" }).handler(async () => {
   const intro = await renderServerComponent(
     <ServerIntro renderedAt={snapshot.renderedAt} />,
   );
+  console.log("[RSC server] intro", intro);
 
   const snapshotCard = await createCompositeComponent(
     (props: {
@@ -92,6 +93,7 @@ const getLanding = createServerFn({ method: "GET" }).handler(async () => {
       </ServerSnapshotCard>
     ),
   );
+  console.log("[RSC server] snapshotCard", JSON.stringify(snapshotCard));
 
   return {
     intro,
@@ -106,6 +108,11 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const { intro, snapshotCard } = Route.useLoaderData();
+
+  useEffect(() => {
+    console.log("[RSC client] intro", intro);
+    console.log("[RSC client] snapshotCard", snapshotCard);
+  }, [intro, snapshotCard]);
 
   return (
     <main className="page-shell">
