@@ -2,6 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { SignJWT } from "jose";
 import { Pool, type PoolClient } from "pg";
 import { z } from "zod";
+import { serializeRsc } from "./rsc";
+import { createCompositeComponent } from "@tanstack/react-start/rsc";
+import { TodoServerComponent } from "./server-components";
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
@@ -26,6 +29,7 @@ const tableConfig = {
       "list_id",
       "description",
       "completed",
+      "component",
       "created_at",
       "completed_at",
     ]),
@@ -180,7 +184,15 @@ async function upsertRecord(
   }
 
   const quotedColumns = columns.map(quoteIdentifier);
-  const values = columns.map((column) => opData[column]);
+  const values = await Promise.all(
+    columns.map((column) => {
+      if (column === "component" && table === "todos") {
+        const comp = createCompositeComponent(TodoServerComponent);
+        return serializeRsc(comp);
+      }
+      return opData[column];
+    }),
+  );
   const placeholders = columns.map((_, index) => `$${index + 2}`).join(", ");
   const updates = quotedColumns
     .map((column) => `${column} = EXCLUDED.${column}`)
@@ -203,7 +215,15 @@ async function updateRecord(
     return;
   }
 
-  const values = columns.map((column) => opData[column]);
+  const values = await Promise.all(
+    columns.map((column) => {
+      if (column === "component" && table === "todos") {
+        const comp = createCompositeComponent(TodoServerComponent);
+        return serializeRsc(comp);
+      }
+      return opData[column];
+    }),
+  );
   const assignments = columns
     .map((column, index) => `${quoteIdentifier(column)} = $${index + 2}`)
     .join(", ");

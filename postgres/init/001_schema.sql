@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS todos (
   list_id UUID NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
   description TEXT NOT NULL,
   completed BOOLEAN NOT NULL DEFAULT FALSE,
+  component TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   completed_at TIMESTAMPTZ
 );
@@ -29,13 +30,14 @@ VALUES
   ('d23ae72a-ef0d-4b2d-8d0e-c1c58ef7db8d', 'demo-user', 'Ideas inbox', NOW() - INTERVAL '1 day')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO todos (id, list_id, description, completed, created_at, completed_at)
+INSERT INTO todos (id, list_id, description, completed, component, created_at, completed_at)
 VALUES
   (
     '30743df8-bce1-4b10-8559-fd2329ec6ac8',
     'a9f2b7f4-8381-4dc0-86b3-86c4ff6f14a1',
     'Bring up the self-hosted Postgres + PowerSync stack',
     TRUE,
+    NULL,
     NOW() - INTERVAL '36 hours',
     NOW() - INTERVAL '35 hours'
   ),
@@ -44,6 +46,7 @@ VALUES
     'a9f2b7f4-8381-4dc0-86b3-86c4ff6f14a1',
     'Wire TanStack DB collections to PowerSync tables',
     FALSE,
+    NULL,
     NOW() - INTERVAL '18 hours',
     NULL
   ),
@@ -52,6 +55,7 @@ VALUES
     'd23ae72a-ef0d-4b2d-8d0e-c1c58ef7db8d',
     'Try the app offline and create a new list',
     FALSE,
+    NULL,
     NOW() - INTERVAL '6 hours',
     NULL
   )
