@@ -1,17 +1,31 @@
-// add better types
-export function TodoServerComponent({ todo }: any) {
+import { type ReactNode } from "react";
+
+type TodoServerRow = {
+  id: string;
+  description: string;
+  completed: boolean | number;
+  created_at: string | Date | null;
+  completed_at: string | Date | null;
+};
+
+export function TodoServerComponent({
+  todo,
+  renderToggle,
+  renderDelete,
+}: {
+  todo: TodoServerRow;
+  renderToggle?: (data: { todoId: string; completed: boolean }) => ReactNode;
+  renderDelete?: (data: { todoId: string }) => ReactNode;
+}) {
+  const isCompleted = todo.completed === true || todo.completed === 1;
+
   return (
     <article
       key={todo.id}
-      className={`todo-card ${todo.completed === 1 ? "is-complete" : ""}`}
+      className={`todo-card ${isCompleted ? "is-complete" : ""}`}
     >
       <label className="todo-toggle">
-        {/*replace with a client slot that comes in through props*/}
-        {/*<input
-        type="checkbox"
-        checked={todo.completed === 1}
-        onChange={() => handleToggleTodo(todo.id)}
-      />*/}
+        {renderToggle?.({ todoId: todo.id, completed: isCompleted })}
         <span>{todo.description}</span>
       </label>
       <div className="todo-meta">
@@ -20,14 +34,7 @@ export function TodoServerComponent({ todo }: any) {
             ? `Completed ${formatTimestamp(todo.completed_at)}`
             : `Created ${formatTimestamp(todo.created_at)}`}
         </small>
-        {/*replace with a client slot that comes in through props*/}
-        {/*<button
-        type="button"
-        className="ghost-button"
-        onClick={() => handleDeleteTodo(todo.id)}
-      >
-        Delete
-      </button>*/}
+        {renderDelete?.({ todoId: todo.id })}
       </div>
     </article>
   );

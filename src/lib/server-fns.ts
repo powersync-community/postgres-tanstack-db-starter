@@ -1,9 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
+import { createCompositeComponent } from "@tanstack/react-start/rsc";
 import { SignJWT } from "jose";
 import { Pool, type PoolClient } from "pg";
+import { createElement, type ReactNode } from "react";
 import { z } from "zod";
-import { serializeRsc } from "./rsc";
-import { createCompositeComponent } from "@tanstack/react-start/rsc";
+import { serializeRsc } from "./rsc.server";
 import { TodoServerComponent } from "./server-components";
 
 const envSchema = z.object({
@@ -38,6 +39,16 @@ const tableConfig = {
 } as const;
 
 type AllowedTable = keyof typeof tableConfig;
+
+type TodoRow = {
+  id: string;
+  list_id: string;
+  description: string;
+  completed: boolean;
+  component: string | null;
+  created_at: string;
+  completed_at: string | null;
+};
 
 const operationSchema = z.object({
   id: z.string().min(1),
@@ -161,6 +172,10 @@ function sanitizeData(
       continue;
     }
 
+    if (table === "todos" && column === "component") {
+      continue;
+    }
+
     if (config.booleanColumns.has(column) && typeof value === "number") {
       data[column] = value === 1;
       continue;
@@ -184,15 +199,7 @@ async function upsertRecord(
   }
 
   const quotedColumns = columns.map(quoteIdentifier);
-  const values = await Promise.all(
-    columns.map((column) => {
-      if (column === "component" && table === "todos") {
-        const comp = createCompositeComponent(TodoServerComponent);
-        return serializeRsc(comp);
-      }
-      return opData[column];
-    }),
-  );
+  const values = columns.map((column) => opData[column]);
   const placeholders = columns.map((_, index) => `$${index + 2}`).join(", ");
   const updates = quotedColumns
     .map((column) => `${column} = EXCLUDED.${column}`)
@@ -202,6 +209,10 @@ async function upsertRecord(
     `INSERT INTO ${quoteIdentifier(table)} (id, ${quotedColumns.join(", ")}) VALUES ($1, ${placeholders}) ON CONFLICT (id) DO UPDATE SET ${updates}`,
     [id, ...values],
   );
+
+  if (table === "todos") {
+    await refreshTodoComponent(client, id);
+  }
 }
 
 async function updateRecord(
@@ -215,15 +226,7 @@ async function updateRecord(
     return;
   }
 
-  const values = await Promise.all(
-    columns.map((column) => {
-      if (column === "component" && table === "todos") {
-        const comp = createCompositeComponent(TodoServerComponent);
-        return serializeRsc(comp);
-      }
-      return opData[column];
-    }),
-  );
+  const values = columns.map((column) => opData[column]);
   const assignments = columns
     .map((column, index) => `${quoteIdentifier(column)} = $${index + 2}`)
     .join(", ");
@@ -232,6 +235,10 @@ async function updateRecord(
     `UPDATE ${quoteIdentifier(table)} SET ${assignments} WHERE id = $1`,
     [id, ...values],
   );
+
+  if (table === "todos") {
+    await refreshTodoComponent(client, id);
+  }
 }
 
 async function deleteRecord(
@@ -246,4 +253,42 @@ async function deleteRecord(
 
 function quoteIdentifier(identifier: string): string {
   return `"${identifier.replaceAll('"', '""')}"`;
+}
+
+async function refreshTodoComponent(client: PoolClient, id: string) {
+  const todo = await getTodoById(client, id);
+  if (!todo) {
+    return;
+  }
+
+  const component = await createCompositeComponent(
+    (props: {
+      renderToggle?: (data: { todoId: string; completed: boolean }) => ReactNode;
+      renderDelete?: (data: { todoId: string }) => ReactNode;
+    }) =>
+      createElement(TodoServerComponent, {
+        todo,
+        renderToggle: props.renderToggle,
+        renderDelete: props.renderDelete,
+      }),
+  );
+
+  await client.query(`UPDATE todos SET component = $2 WHERE id = $1`, [
+    id,
+    await serializeRsc(component),
+  ]);
+}
+
+async function getTodoById(
+  client: PoolClient,
+  id: string,
+): Promise<TodoRow | undefined> {
+  const result = await client.query<TodoRow>(
+    `SELECT id, list_id, description, completed, component, created_at, completed_at
+     FROM todos
+     WHERE id = $1`,
+    [id],
+  );
+
+  return result.rows[0];
 }

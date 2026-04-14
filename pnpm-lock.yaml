@@ -32,6 +32,9 @@ importers:
       '@tanstack/react-start':
         specifier: ^1.166.8
         version: 1.167.31(@vitejs/plugin-rsc@0.5.24(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vite@7.3.2(@types/node@24.12.2)(tsx@4.21.0)))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vite@7.3.2(@types/node@24.12.2)(tsx@4.21.0))
+      '@tanstack/router-core':
+        specifier: ^1.168.14
+        version: 1.168.14
       jose:
         specifier: ^6.1.2
         version: 6.2.2
@@ -44,6 +47,9 @@ importers:
       react-dom:
         specifier: ^19.2.0
         version: 19.2.5(react@19.2.5)
+      seroval:
+        specifier: ^1.5.2
+        version: 1.5.2
       zod:
         specifier: ^4.1.12
         version: 4.3.6

@@ -3,7 +3,7 @@ import { useStatus } from "@powersync/react";
 import { useLiveQuery } from "@tanstack/react-db";
 import { listsCollection, todosCollection } from "~/lib/collections";
 import { CompositeComponent } from "@tanstack/react-start/rsc";
-import { deserializeRsc } from "~/lib/rsc";
+import { deserializeRsc } from "~/lib/rsc.client";
 
 const DEMO_USER_ID = import.meta.env.VITE_USER_ID;
 
@@ -280,11 +280,53 @@ export function Workspace() {
             {todos.map((todo) =>
               todo.component ? (
                 <CompositeComponent
+                  key={todo.id}
                   src={deserializeRsc(todo.component)}
-                  todo={todo}
+                  renderToggle={() => (
+                    <input
+                      type="checkbox"
+                      checked={todo.completed === 1}
+                      onChange={() => handleToggleTodo(todo.id)}
+                    />
+                  )}
+                  renderDelete={() => (
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={() => handleDeleteTodo(todo.id)}
+                    >
+                      Delete
+                    </button>
+                  )}
                 />
               ) : (
-                <>{/*minimal: fallback*/}</>
+                <article
+                  key={todo.id}
+                  className={`todo-card ${todo.completed === 1 ? "is-complete" : ""}`}
+                >
+                  <label className="todo-toggle">
+                    <input
+                      type="checkbox"
+                      checked={todo.completed === 1}
+                      onChange={() => handleToggleTodo(todo.id)}
+                    />
+                    <span>{todo.description}</span>
+                  </label>
+                  <div className="todo-meta">
+                    <small>
+                      {todo.completed_at
+                        ? `Completed ${formatTimestamp(todo.completed_at)}`
+                        : `Created ${formatTimestamp(todo.created_at)}`}
+                    </small>
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={() => handleDeleteTodo(todo.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </article>
               ),
             )}
           </div>
