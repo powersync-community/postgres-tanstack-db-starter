@@ -1,70 +1,84 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { useStatus } from '@powersync/react'
-import { useLiveQuery } from '@tanstack/react-db'
-import { listsCollection, todosCollection } from '~/lib/collections'
+import { useEffect, useState, type FormEvent } from "react";
+import { useStatus } from "@powersync/react";
+import { useLiveQuery } from "@tanstack/react-db";
+import { listsCollection, todosCollection } from "~/lib/collections";
+import { CompositeComponent } from "@tanstack/react-start/rsc";
+import { deserializeRsc } from "~/lib/rsc";
 
-const DEMO_USER_ID = import.meta.env.VITE_USER_ID
+const DEMO_USER_ID = import.meta.env.VITE_USER_ID;
 
 export function Workspace() {
-  const status = useStatus()
-  const [selectedListId, setSelectedListId] = useState<string | null>(null)
-  const [newListName, setNewListName] = useState('')
-  const [newTodoDescription, setNewTodoDescription] = useState('')
+  const status = useStatus();
+  const [selectedListId, setSelectedListId] = useState<string | null>(null);
+  const [newListName, setNewListName] = useState("");
+  const [newTodoDescription, setNewTodoDescription] = useState("");
 
   const { data: lists = [], isLoading: listsLoading } = useLiveQuery((query) =>
-    query.from({ list: listsCollection }).orderBy(({ list }) => list.created_at, 'asc'),
-  )
+    query
+      .from({ list: listsCollection })
+      .orderBy(({ list }) => list.created_at, "asc"),
+  );
 
-  const { data: allTodos = [], isLoading: todosLoading } = useLiveQuery((query) =>
-    query.from({ todo: todosCollection }).orderBy(({ todo }) => todo.created_at, 'asc'),
-  )
+  const { data: allTodos = [], isLoading: todosLoading } = useLiveQuery(
+    (query) =>
+      query
+        .from({ todo: todosCollection })
+        .orderBy(({ todo }) => todo.created_at, "asc"),
+  );
 
   useEffect(() => {
     if (!lists.length) {
       if (selectedListId !== null) {
-        setSelectedListId(null)
+        setSelectedListId(null);
       }
-      return
+      return;
     }
 
-    const firstList = lists[0]
-    if (firstList && (!selectedListId || !lists.some((list) => list.id === selectedListId))) {
-      setSelectedListId(firstList.id)
+    const firstList = lists[0];
+    if (
+      firstList &&
+      (!selectedListId || !lists.some((list) => list.id === selectedListId))
+    ) {
+      setSelectedListId(firstList.id);
     }
-  }, [lists, selectedListId])
+  }, [lists, selectedListId]);
 
-  const selectedList = lists.find((list) => list.id === selectedListId) ?? null
-  const todos = selectedListId ? allTodos.filter((todo) => todo.list_id === selectedListId) : []
-  const completedCount = todos.filter((todo) => todo.completed === 1).length
+  const selectedList = lists.find((list) => list.id === selectedListId) ?? null;
+  const todos = selectedListId
+    ? allTodos.filter((todo) => todo.list_id === selectedListId)
+    : [];
+  const completedCount = todos.filter((todo) => todo.completed === 1).length;
   const syncProgress = status.downloadProgress
     ? Math.round(status.downloadProgress.downloadedFraction * 100)
-    : null
-  const isSyncing = Boolean(status.dataFlowStatus?.uploading || status.dataFlowStatus?.downloading)
+    : null;
+  const isSyncing = Boolean(
+    status.dataFlowStatus?.uploading || status.dataFlowStatus?.downloading,
+  );
 
   async function handleCreateList(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const name = newListName.trim()
+    event.preventDefault();
+    const name = newListName.trim();
     if (!name) {
-      return
+      return;
     }
 
-    const id = crypto.randomUUID()
+    const id = crypto.randomUUID();
     await listsCollection.insert({
       id,
       owner_id: DEMO_USER_ID,
       name,
       created_at: new Date().toISOString(),
-    }).isPersisted.promise
+    }).isPersisted.promise;
 
-    setSelectedListId(id)
-    setNewListName('')
+    setSelectedListId(id);
+    setNewListName("");
   }
 
   async function handleCreateTodo(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const description = newTodoDescription.trim()
+    event.preventDefault();
+    const description = newTodoDescription.trim();
     if (!description || !selectedListId) {
-      return
+      return;
     }
 
     await todosCollection.insert({
@@ -74,21 +88,21 @@ export function Workspace() {
       completed: 0,
       created_at: new Date().toISOString(),
       completed_at: null,
-    }).isPersisted.promise
+    }).isPersisted.promise;
 
-    setNewTodoDescription('')
+    setNewTodoDescription("");
   }
 
   async function handleToggleTodo(todoId: string) {
     await todosCollection.update(todoId, (todo) => {
-      const nextCompleted = todo.completed === 1 ? 0 : 1
-      todo.completed = nextCompleted
-      todo.completed_at = nextCompleted === 1 ? new Date().toISOString() : null
-    }).isPersisted.promise
+      const nextCompleted = todo.completed === 1 ? 0 : 1;
+      todo.completed = nextCompleted;
+      todo.completed_at = nextCompleted === 1 ? new Date().toISOString() : null;
+    }).isPersisted.promise;
   }
 
   async function handleDeleteTodo(todoId: string) {
-    await todosCollection.delete(todoId).isPersisted.promise
+    await todosCollection.delete(todoId).isPersisted.promise;
   }
 
   return (
@@ -98,15 +112,26 @@ export function Workspace() {
           <p className="eyebrow">Starter template</p>
           <h1>PowerSync local workspace</h1>
           <p className="lede">
-            Self-hosted Postgres for replication, PowerSync for offline sync, and TanStack DB for fast reactive collections.
+            Self-hosted Postgres for replication, PowerSync for offline sync,
+            and TanStack DB for fast reactive collections.
           </p>
         </div>
 
         <div className="status-card">
           <div className="status-row">
             <span className="status-label">State</span>
-            <span className={`status-pill ${status.connected ? 'is-live' : 'is-waiting'}`}>
-              {status.connecting ? 'Connecting' : isSyncing ? 'Syncing' : status.connected ? 'Live' : status.hasSynced ? 'Offline' : 'Booting'}
+            <span
+              className={`status-pill ${status.connected ? "is-live" : "is-waiting"}`}
+            >
+              {status.connecting
+                ? "Connecting"
+                : isSyncing
+                  ? "Syncing"
+                  : status.connected
+                    ? "Live"
+                    : status.hasSynced
+                      ? "Offline"
+                      : "Booting"}
             </span>
           </div>
           <div className="status-row">
@@ -124,7 +149,10 @@ export function Workspace() {
                 <span>{syncProgress}%</span>
               </div>
               <div className="progress-track">
-                <div className="progress-fill" style={{ width: `${syncProgress}%` }} />
+                <div
+                  className="progress-fill"
+                  style={{ width: `${syncProgress}%` }}
+                />
               </div>
             </div>
           ) : null}
@@ -149,15 +177,19 @@ export function Workspace() {
             <span>{lists.length}</span>
           </div>
           <div className="list-column">
-            {listsLoading ? <p className="muted-copy">Loading local replica...</p> : null}
+            {listsLoading ? (
+              <p className="muted-copy">Loading local replica...</p>
+            ) : null}
             {!listsLoading && lists.length === 0 ? (
-              <p className="muted-copy">No lists yet. Create one and it will sync through Postgres.</p>
+              <p className="muted-copy">
+                No lists yet. Create one and it will sync through Postgres.
+              </p>
             ) : null}
             {lists.map((list) => (
               <button
                 key={list.id}
                 type="button"
-                className={`list-card ${selectedListId === list.id ? 'is-selected' : ''}`}
+                className={`list-card ${selectedListId === list.id ? "is-selected" : ""}`}
                 onClick={() => setSelectedListId(list.id)}
               >
                 <span>{list.name}</span>
@@ -172,7 +204,7 @@ export function Workspace() {
         <div className="board-header">
           <div>
             <p className="eyebrow">Active list</p>
-            <h2>{selectedList?.name ?? 'Create your first list'}</h2>
+            <h2>{selectedList?.name ?? "Create your first list"}</h2>
           </div>
           <div className="stats-grid">
             <div className="stat-card">
@@ -191,10 +223,14 @@ export function Workspace() {
         </div>
 
         {status.dataFlowStatus?.downloadError ? (
-          <div className="banner is-error">Download error: {status.dataFlowStatus.downloadError.message}</div>
+          <div className="banner is-error">
+            Download error: {status.dataFlowStatus.downloadError.message}
+          </div>
         ) : null}
         {status.dataFlowStatus?.uploadError ? (
-          <div className="banner is-error">Upload error: {status.dataFlowStatus.uploadError.message}</div>
+          <div className="banner is-error">
+            Upload error: {status.dataFlowStatus.uploadError.message}
+          </div>
         ) : null}
 
         <form className="composer" onSubmit={handleCreateTodo}>
@@ -204,7 +240,11 @@ export function Workspace() {
               id="todo-description"
               value={newTodoDescription}
               onChange={(event) => setNewTodoDescription(event.target.value)}
-              placeholder={selectedList ? 'Write locally, sync automatically' : 'Create a list first'}
+              placeholder={
+                selectedList
+                  ? "Write locally, sync automatically"
+                  : "Create a list first"
+              }
               disabled={!selectedList}
             />
             <button type="submit" disabled={!selectedList}>
@@ -219,50 +259,51 @@ export function Workspace() {
             <span>{todos.length}</span>
           </div>
 
-          {todosLoading ? <p className="muted-copy">Waiting for local data...</p> : null}
-
-          {!todosLoading && selectedList && todos.length === 0 ? (
-            <p className="muted-copy">This list is empty. Add a todo to see optimistic local writes and sync in action.</p>
+          {todosLoading ? (
+            <p className="muted-copy">Waiting for local data...</p>
           ) : null}
 
-          {!selectedList ? <p className="muted-copy">Select a list on the left or create a new one.</p> : null}
+          {!todosLoading && selectedList && todos.length === 0 ? (
+            <p className="muted-copy">
+              This list is empty. Add a todo to see optimistic local writes and
+              sync in action.
+            </p>
+          ) : null}
+
+          {!selectedList ? (
+            <p className="muted-copy">
+              Select a list on the left or create a new one.
+            </p>
+          ) : null}
 
           <div className="todo-list">
-            {todos.map((todo) => (
-              <article key={todo.id} className={`todo-card ${todo.completed === 1 ? 'is-complete' : ''}`}>
-                <label className="todo-toggle">
-                  <input
-                    type="checkbox"
-                    checked={todo.completed === 1}
-                    onChange={() => handleToggleTodo(todo.id)}
-                  />
-                  <span>{todo.description}</span>
-                </label>
-                <div className="todo-meta">
-                  <small>{todo.completed_at ? `Completed ${formatTimestamp(todo.completed_at)}` : `Created ${formatTimestamp(todo.created_at)}`}</small>
-                  <button type="button" className="ghost-button" onClick={() => handleDeleteTodo(todo.id)}>
-                    Delete
-                  </button>
-                </div>
-              </article>
-            ))}
+            {todos.map((todo) =>
+              todo.component ? (
+                <CompositeComponent
+                  src={deserializeRsc(todo.component)}
+                  todo={todo}
+                />
+              ) : (
+                <>{/*minimal: fallback*/}</>
+              ),
+            )}
           </div>
         </section>
       </main>
     </div>
-  )
+  );
 }
 
 function formatTimestamp(value: string | Date | null | undefined): string {
   if (!value) {
-    return 'Not yet'
+    return "Not yet";
   }
 
-  const date = typeof value === 'string' ? new Date(value) : value
+  const date = typeof value === "string" ? new Date(value) : value;
   return new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(date)
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
 }

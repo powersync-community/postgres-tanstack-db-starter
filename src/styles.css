@@ -23,6 +23,10 @@ body {
   min-height: 100vh;
 }
 
+#app {
+  min-height: 100vh;
+}
+
 button,
 input {
   font: inherit;
@@ -49,7 +53,57 @@ code {
 .workspace-shell {
   display: grid;
   grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
-  min-height: 100vh;
+  min-height: 0;
+}
+
+.page-shell {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.5rem;
+}
+
+.rsc-hero,
+.rsc-card,
+.workspace-fallback {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(18px);
+}
+
+.rsc-hero,
+.rsc-card,
+.workspace-fallback {
+  padding: 1.25rem;
+}
+
+.rsc-meta,
+.rsc-copy {
+  margin-top: 0.75rem;
+}
+
+.rsc-card-header,
+.rsc-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.rsc-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.rsc-actions {
+  margin-top: 1rem;
+  justify-content: flex-start;
+}
+
+.workspace-fallback {
+  min-height: 12rem;
 }
 
 .sidebar {
@@ -325,6 +379,10 @@ h2 {
 }
 
 @media (max-width: 960px) {
+  .page-shell {
+    padding: 1rem;
+  }
+
   .workspace-shell {
     grid-template-columns: 1fr;
   }
@@ -342,9 +400,19 @@ h2 {
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .rsc-card-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 640px) {
+  .page-shell {
+    gap: 1rem;
+    padding: 0.75rem;
+  }
+
   .sidebar,
   .board {
     padding: 1rem;
@@ -357,5 +425,9 @@ h2 {
 
   .stats-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .rsc-stats-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -1,3 +1,4 @@
+import '@tanstack/react-start/client-only'
 import type {
   AbstractPowerSyncDatabase,
   PowerSyncBackendConnector,

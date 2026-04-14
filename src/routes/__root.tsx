@@ -1,7 +1,4 @@
-import { useEffect } from 'react'
 import { Outlet, createRootRoute, HeadContent, Scripts } from '@tanstack/react-router'
-import { PowerSyncContext } from '@powersync/react'
-import { powerSync, startPowerSync } from '~/lib/powersync/database'
 import appCss from '~/styles.css?url'
 
 export const Route = createRootRoute({
@@ -19,19 +16,13 @@ export const Route = createRootRoute({
 })
 
 function RootComponent() {
-  useEffect(() => {
-    startPowerSync()
-  }, [])
-
   return (
     <html lang="en">
       <head>
         <HeadContent />
       </head>
       <body>
-        <PowerSyncContext.Provider value={powerSync}>
-          <Outlet />
-        </PowerSyncContext.Provider>
+        <Outlet />
         <Scripts />
       </body>
     </html>

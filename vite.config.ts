@@ -1,5 +1,6 @@
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import react from '@vitejs/plugin-react'
+import rsc from '@vitejs/plugin-rsc'
 import { defineConfig } from 'vite'
 import tsConfigPaths from 'vite-tsconfig-paths'
 import topLevelAwait from 'vite-plugin-top-level-await'
@@ -14,7 +15,18 @@ export default defineConfig({
   build: {
     target: 'esnext',
   },
-  plugins: [tsConfigPaths(), tanstackStart(), react(), wasm(), topLevelAwait()],
+  plugins: [
+    tsConfigPaths(),
+    tanstackStart({
+      rsc: {
+        enabled: true,
+      },
+    }),
+    rsc(),
+    react(),
+    wasm(),
+    topLevelAwait(),
+  ],
   optimizeDeps: {
     exclude: ['@journeyapps/wa-sqlite', '@powersync/web'],
   },

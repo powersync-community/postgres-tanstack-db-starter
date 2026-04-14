@@ -1,3 +1,4 @@
+import '@tanstack/react-start/client-only'
 import { PowerSyncDatabase } from '@powersync/web'
 import { connector } from './connector'
 import { appSchema } from './schema'
