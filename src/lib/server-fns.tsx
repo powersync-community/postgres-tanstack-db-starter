@@ -2,10 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { createCompositeComponent } from "@tanstack/react-start/rsc";
 import { SignJWT } from "jose";
 import { Pool, type PoolClient } from "pg";
-import { createElement, type ReactNode } from "react";
 import { z } from "zod";
 import { serializeRsc } from "./rsc.server";
 import { TodoServerComponent } from "./server-components";
+import { ReactNode } from "react";
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
@@ -263,14 +263,18 @@ async function refreshTodoComponent(client: PoolClient, id: string) {
 
   const component = await createCompositeComponent(
     (props: {
-      renderToggle?: (data: { todoId: string; completed: boolean }) => ReactNode;
+      renderToggle?: (data: {
+        todoId: string;
+        completed: boolean;
+      }) => ReactNode;
       renderDelete?: (data: { todoId: string }) => ReactNode;
-    }) =>
-      createElement(TodoServerComponent, {
-        todo,
-        renderToggle: props.renderToggle,
-        renderDelete: props.renderDelete,
-      }),
+    }) => (
+      <TodoServerComponent
+        todo={todo}
+        renderDelete={props.renderDelete}
+        renderToggle={props.renderToggle}
+      />
+    ),
   );
 
   await client.query(`UPDATE todos SET component = $2 WHERE id = $1`, [

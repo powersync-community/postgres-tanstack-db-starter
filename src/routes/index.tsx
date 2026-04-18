@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-start/rsc";
 import { type ReactNode, useEffect, useState } from "react";
 import { WorkspaceApp } from "~/components/workspace-app";
+import { deserializeRsc } from "~/lib/rsc.client";
 import { getPostgresSnapshot } from "~/lib/server-fns";
 
 type PostgresSnapshot = Awaited<ReturnType<typeof getPostgresSnapshot>>;
@@ -81,7 +82,6 @@ const getLanding = createServerFn({ method: "GET" }).handler(async () => {
   const intro = await renderServerComponent(
     <ServerIntro renderedAt={snapshot.renderedAt} />,
   );
-  console.log("[RSC server] intro", intro);
 
   const snapshotCard = await createCompositeComponent(
     (props: {
@@ -93,7 +93,6 @@ const getLanding = createServerFn({ method: "GET" }).handler(async () => {
       </ServerSnapshotCard>
     ),
   );
-  console.log("[RSC server] snapshotCard", JSON.stringify(snapshotCard));
 
   return {
     intro,

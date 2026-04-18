@@ -1,9 +1,8 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { useStatus } from "@powersync/react";
 import { useLiveQuery } from "@tanstack/react-db";
 import { listsCollection, todosCollection } from "~/lib/collections";
-import { CompositeComponent } from "@tanstack/react-start/rsc";
-import { deserializeRsc } from "~/lib/rsc.client";
+import { CompositeComponentFromString } from "~/lib/rsc.client";
 
 const DEMO_USER_ID = import.meta.env.VITE_USER_ID;
 
@@ -199,139 +198,113 @@ export function Workspace() {
           </div>
         </div>
       </aside>
-
-      <main className="board">
-        <div className="board-header">
-          <div>
-            <p className="eyebrow">Active list</p>
-            <h2>{selectedList?.name ?? "Create your first list"}</h2>
-          </div>
-          <div className="stats-grid">
-            <div className="stat-card">
-              <strong>{todos.length}</strong>
-              <span>items</span>
+      <Suspense>
+        <main className="board">
+          <div className="board-header">
+            <div>
+              <p className="eyebrow">Active list</p>
+              <h2>{selectedList?.name ?? "Create your first list"}</h2>
             </div>
-            <div className="stat-card">
-              <strong>{completedCount}</strong>
-              <span>done</span>
+            <div className="stats-grid">
+              <div className="stat-card">
+                <strong>{todos.length}</strong>
+                <span>items</span>
+              </div>
+              <div className="stat-card">
+                <strong>{completedCount}</strong>
+                <span>done</span>
+              </div>
+              <div className="stat-card">
+                <strong>{todos.length - completedCount}</strong>
+                <span>open</span>
+              </div>
             </div>
-            <div className="stat-card">
-              <strong>{todos.length - completedCount}</strong>
-              <span>open</span>
+          </div>
+
+          {status.dataFlowStatus?.downloadError ? (
+            <div className="banner is-error">
+              Download error: {status.dataFlowStatus.downloadError.message}
             </div>
-          </div>
-        </div>
-
-        {status.dataFlowStatus?.downloadError ? (
-          <div className="banner is-error">
-            Download error: {status.dataFlowStatus.downloadError.message}
-          </div>
-        ) : null}
-        {status.dataFlowStatus?.uploadError ? (
-          <div className="banner is-error">
-            Upload error: {status.dataFlowStatus.uploadError.message}
-          </div>
-        ) : null}
-
-        <form className="composer" onSubmit={handleCreateTodo}>
-          <label htmlFor="todo-description">Add a todo</label>
-          <div className="inline-form">
-            <input
-              id="todo-description"
-              value={newTodoDescription}
-              onChange={(event) => setNewTodoDescription(event.target.value)}
-              placeholder={
-                selectedList
-                  ? "Write locally, sync automatically"
-                  : "Create a list first"
-              }
-              disabled={!selectedList}
-            />
-            <button type="submit" disabled={!selectedList}>
-              Queue write
-            </button>
-          </div>
-        </form>
-
-        <section className="todo-panel">
-          <div className="section-heading">
-            <h2>Todos</h2>
-            <span>{todos.length}</span>
-          </div>
-
-          {todosLoading ? (
-            <p className="muted-copy">Waiting for local data...</p>
+          ) : null}
+          {status.dataFlowStatus?.uploadError ? (
+            <div className="banner is-error">
+              Upload error: {status.dataFlowStatus.uploadError.message}
+            </div>
           ) : null}
 
-          {!todosLoading && selectedList && todos.length === 0 ? (
-            <p className="muted-copy">
-              This list is empty. Add a todo to see optimistic local writes and
-              sync in action.
-            </p>
-          ) : null}
+          <form className="composer" onSubmit={handleCreateTodo}>
+            <label htmlFor="todo-description">Add a todo</label>
+            <div className="inline-form">
+              <input
+                id="todo-description"
+                value={newTodoDescription}
+                onChange={(event) => setNewTodoDescription(event.target.value)}
+                placeholder={
+                  selectedList
+                    ? "Write locally, sync automatically"
+                    : "Create a list first"
+                }
+                disabled={!selectedList}
+              />
+              <button type="submit" disabled={!selectedList}>
+                Queue write
+              </button>
+            </div>
+          </form>
 
-          {!selectedList ? (
-            <p className="muted-copy">
-              Select a list on the left or create a new one.
-            </p>
-          ) : null}
+          <section className="todo-panel">
+            <div className="section-heading">
+              <h2>Todos</h2>
+              <span>{todos.length}</span>
+            </div>
 
-          <div className="todo-list">
-            {todos.map((todo) =>
-              todo.component ? (
-                <CompositeComponent
-                  key={todo.id}
-                  src={deserializeRsc(todo.component)}
-                  renderToggle={() => (
-                    <input
-                      type="checkbox"
-                      checked={todo.completed === 1}
-                      onChange={() => handleToggleTodo(todo.id)}
-                    />
-                  )}
-                  renderDelete={() => (
-                    <button
-                      type="button"
-                      className="ghost-button"
-                      onClick={() => handleDeleteTodo(todo.id)}
-                    >
-                      Delete
-                    </button>
-                  )}
-                />
-              ) : (
-                <article
-                  key={todo.id}
-                  className={`todo-card ${todo.completed === 1 ? "is-complete" : ""}`}
-                >
-                  <label className="todo-toggle">
-                    <input
-                      type="checkbox"
-                      checked={todo.completed === 1}
-                      onChange={() => handleToggleTodo(todo.id)}
-                    />
-                    <span>{todo.description}</span>
-                  </label>
-                  <div className="todo-meta">
-                    <small>
-                      {todo.completed_at
-                        ? `Completed ${formatTimestamp(todo.completed_at)}`
-                        : `Created ${formatTimestamp(todo.created_at)}`}
-                    </small>
-                    <button
-                      type="button"
-                      className="ghost-button"
-                      onClick={() => handleDeleteTodo(todo.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </article>
-              ),
-            )}
-          </div>
-        </section>
-      </main>
+            {todosLoading ? (
+              <p className="muted-copy">Waiting for local data...</p>
+            ) : null}
+
+            {!todosLoading && selectedList && todos.length === 0 ? (
+              <p className="muted-copy">
+                This list is empty. Add a todo to see optimistic local writes
+                and sync in action.
+              </p>
+            ) : null}
+
+            {!selectedList ? (
+              <p className="muted-copy">
+                Select a list on the left or create a new one.
+              </p>
+            ) : null}
+            <div className="todo-list">
+              {todos.map((todo) =>
+                todo.component ? (
+                  <CompositeComponentFromString
+                    key={todo.id}
+                    src={todo.component}
+                    renderToggle={() => (
+                      <input
+                        type="checkbox"
+                        checked={todo.completed === 1}
+                        onChange={() => handleToggleTodo(todo.id)}
+                      />
+                    )}
+                    renderDelete={() => (
+                      <button
+                        type="button"
+                        className="ghost-button"
+                        onClick={() => handleDeleteTodo(todo.id)}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  />
+                ) : (
+                  <>Loading Server Component</>
+                ),
+              )}
+            </div>
+          </section>
+        </main>
+      </Suspense>
     </div>
   );
 }
