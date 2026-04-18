@@ -236,9 +236,9 @@ async function updateRecord(
     [id, ...values],
   );
 
-  if (table === "todos") {
-    await refreshTodoComponent(client, id);
-  }
+  // if (table === "todos") {
+  //   await refreshTodoComponent(client, id);
+  // }
 }
 
 async function deleteRecord(

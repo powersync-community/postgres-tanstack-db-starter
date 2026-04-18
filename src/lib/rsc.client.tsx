@@ -25,8 +25,7 @@ type ServerComponentStream = {
   createReplayStream(): ReadableStream<Uint8Array>;
 };
 
-export function deserializeRsc(payload: any): AnyCompositeComponent {
-  console.log(`deserializing`);
+export function deserializeRsc(payload: string): AnyCompositeComponent {
   const bytes = base64ToUint8Array(payload);
   const cssHrefs = new Set<string>();
 
@@ -59,7 +58,7 @@ export function deserializeRsc(payload: any): AnyCompositeComponent {
   return createCompositeProxy({
     getTree,
     stream: streamWrapper,
-    cssHrefs: cssHrefs.size > 0 ? cssHrefs : undefined,
+    cssHrefs,
   });
 }
 
