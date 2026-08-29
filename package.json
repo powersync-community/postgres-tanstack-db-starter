@@ -10,7 +10,9 @@
     "db:reset": "docker compose down -v && docker compose up -d",
     "db:logs": "docker compose logs -f postgres powersync",
     "build": "vite build",
-    "start": "node .output/server/index.mjs",
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler deploy",
+    "cf-typegen": "wrangler types",
     "typecheck": "tsc --noEmit",
     "powersync:token": "powersync generate token --directory=powersync --subject=demo-user"
   },
@@ -30,6 +32,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.54.2",
     "@eslint/js": "^9.38.0",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.5",
@@ -45,6 +48,7 @@
     "vite": "^7.1.12",
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.4.1",
-    "vite-tsconfig-paths": "^6.0.0"
+    "vite-tsconfig-paths": "^6.0.0",
+    "wrangler": "^4.127.1"
   }
 }
