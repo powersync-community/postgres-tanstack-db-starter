@@ -2,10 +2,34 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useStatus } from '@powersync/react'
 import { useLiveQuery } from '@tanstack/react-db'
 import { listsCollection, todosCollection } from '~/lib/collections'
+import { startPowerSync } from '~/lib/powersync/database'
+import { PowerSyncContext } from '@powersync/react'
+import { powerSync } from '~/lib/powersync/database'
 
 const DEMO_USER_ID = import.meta.env.VITE_USER_ID
 
+// Boots the PowerSync connection; must live inside <ClientOnly> so the wa-sqlite/wasm
+// import chain is stripped from the server compile instead of bloating the Worker bundle.
+function PowerSyncBoot() {
+  useEffect(() => {
+    startPowerSync()
+  }, [])
+
+  return null
+}
+
+// PowerSyncContext.Provider must wrap this component from the outside — a Provider
+// only affects descendants, not hooks called earlier in the same component's render.
 export function Workspace() {
+  return (
+    <PowerSyncContext.Provider value={powerSync}>
+      <PowerSyncBoot />
+      <WorkspaceContent />
+    </PowerSyncContext.Provider>
+  )
+}
+
+function WorkspaceContent() {
   const status = useStatus()
   const [selectedListId, setSelectedListId] = useState<string | null>(null)
   const [newListName, setNewListName] = useState('')
@@ -94,162 +118,162 @@ export function Workspace() {
   return (
     <div className="workspace-shell">
       <aside className="sidebar">
-        <div className="sidebar-header">
-          <p className="eyebrow">Starter template</p>
-          <h1>PowerSync local workspace</h1>
-          <p className="lede">
-            Self-hosted Postgres for replication, PowerSync for offline sync, and TanStack DB for fast reactive collections.
-          </p>
-        </div>
+          <div className="sidebar-header">
+            <p className="eyebrow">Starter template</p>
+            <h1>PowerSync local workspace</h1>
+            <p className="lede">
+              Self-hosted Postgres for replication, PowerSync for offline sync, and TanStack DB for fast reactive collections.
+            </p>
+          </div>
 
-        <div className="status-card">
-          <div className="status-row">
-            <span className="status-label">State</span>
-            <span className={`status-pill ${status.connected ? 'is-live' : 'is-waiting'}`}>
-              {status.connecting ? 'Connecting' : isSyncing ? 'Syncing' : status.connected ? 'Live' : status.hasSynced ? 'Offline' : 'Booting'}
-            </span>
-          </div>
-          <div className="status-row">
-            <span className="status-label">User</span>
-            <code>{DEMO_USER_ID}</code>
-          </div>
-          <div className="status-row">
-            <span className="status-label">Last sync</span>
-            <span>{formatTimestamp(status.lastSyncedAt)}</span>
-          </div>
-          {syncProgress !== null ? (
-            <div className="progress-block">
-              <div className="progress-meta">
-                <span>Download progress</span>
-                <span>{syncProgress}%</span>
-              </div>
-              <div className="progress-track">
-                <div className="progress-fill" style={{ width: `${syncProgress}%` }} />
-              </div>
+          <div className="status-card">
+            <div className="status-row">
+              <span className="status-label">State</span>
+              <span className={`status-pill ${status.connected ? 'is-live' : 'is-waiting'}`}>
+                {status.connecting ? 'Connecting' : isSyncing ? 'Syncing' : status.connected ? 'Live' : status.hasSynced ? 'Offline' : 'Booting'}
+              </span>
             </div>
-          ) : null}
-        </div>
-
-        <form className="stack-form" onSubmit={handleCreateList}>
-          <label htmlFor="list-name">Create a list</label>
-          <div className="inline-form">
-            <input
-              id="list-name"
-              value={newListName}
-              onChange={(event) => setNewListName(event.target.value)}
-              placeholder="Sprint notes"
-            />
-            <button type="submit">Add</button>
-          </div>
-        </form>
-
-        <div className="list-block">
-          <div className="section-heading">
-            <h2>Lists</h2>
-            <span>{lists.length}</span>
-          </div>
-          <div className="list-column">
-            {listsLoading ? <p className="muted-copy">Loading local replica...</p> : null}
-            {!listsLoading && lists.length === 0 ? (
-              <p className="muted-copy">No lists yet. Create one and it will sync through Postgres.</p>
-            ) : null}
-            {lists.map((list) => (
-              <button
-                key={list.id}
-                type="button"
-                className={`list-card ${selectedListId === list.id ? 'is-selected' : ''}`}
-                onClick={() => setSelectedListId(list.id)}
-              >
-                <span>{list.name}</span>
-                <small>{formatTimestamp(list.created_at)}</small>
-              </button>
-            ))}
-          </div>
-        </div>
-      </aside>
-
-      <main className="board">
-        <div className="board-header">
-          <div>
-            <p className="eyebrow">Active list</p>
-            <h2>{selectedList?.name ?? 'Create your first list'}</h2>
-          </div>
-          <div className="stats-grid">
-            <div className="stat-card">
-              <strong>{todos.length}</strong>
-              <span>items</span>
+            <div className="status-row">
+              <span className="status-label">User</span>
+              <code>{DEMO_USER_ID}</code>
             </div>
-            <div className="stat-card">
-              <strong>{completedCount}</strong>
-              <span>done</span>
+            <div className="status-row">
+              <span className="status-label">Last sync</span>
+              <span>{formatTimestamp(status.lastSyncedAt)}</span>
             </div>
-            <div className="stat-card">
-              <strong>{todos.length - completedCount}</strong>
-              <span>open</span>
-            </div>
-          </div>
-        </div>
-
-        {status.dataFlowStatus?.downloadError ? (
-          <div className="banner is-error">Download error: {status.dataFlowStatus.downloadError.message}</div>
-        ) : null}
-        {status.dataFlowStatus?.uploadError ? (
-          <div className="banner is-error">Upload error: {status.dataFlowStatus.uploadError.message}</div>
-        ) : null}
-
-        <form className="composer" onSubmit={handleCreateTodo}>
-          <label htmlFor="todo-description">Add a todo</label>
-          <div className="inline-form">
-            <input
-              id="todo-description"
-              value={newTodoDescription}
-              onChange={(event) => setNewTodoDescription(event.target.value)}
-              placeholder={selectedList ? 'Write locally, sync automatically' : 'Create a list first'}
-              disabled={!selectedList}
-            />
-            <button type="submit" disabled={!selectedList}>
-              Queue write
-            </button>
-          </div>
-        </form>
-
-        <section className="todo-panel">
-          <div className="section-heading">
-            <h2>Todos</h2>
-            <span>{todos.length}</span>
-          </div>
-
-          {todosLoading ? <p className="muted-copy">Waiting for local data...</p> : null}
-
-          {!todosLoading && selectedList && todos.length === 0 ? (
-            <p className="muted-copy">This list is empty. Add a todo to see optimistic local writes and sync in action.</p>
-          ) : null}
-
-          {!selectedList ? <p className="muted-copy">Select a list on the left or create a new one.</p> : null}
-
-          <div className="todo-list">
-            {todos.map((todo) => (
-              <article key={todo.id} className={`todo-card ${todo.completed === 1 ? 'is-complete' : ''}`}>
-                <label className="todo-toggle">
-                  <input
-                    type="checkbox"
-                    checked={todo.completed === 1}
-                    onChange={() => handleToggleTodo(todo.id)}
-                  />
-                  <span>{todo.description}</span>
-                </label>
-                <div className="todo-meta">
-                  <small>{todo.completed_at ? `Completed ${formatTimestamp(todo.completed_at)}` : `Created ${formatTimestamp(todo.created_at)}`}</small>
-                  <button type="button" className="ghost-button" onClick={() => handleDeleteTodo(todo.id)}>
-                    Delete
-                  </button>
+            {syncProgress !== null ? (
+              <div className="progress-block">
+                <div className="progress-meta">
+                  <span>Download progress</span>
+                  <span>{syncProgress}%</span>
                 </div>
-              </article>
-            ))}
+                <div className="progress-track">
+                  <div className="progress-fill" style={{ width: `${syncProgress}%` }} />
+                </div>
+              </div>
+            ) : null}
           </div>
-        </section>
-      </main>
-    </div>
+
+          <form className="stack-form" onSubmit={handleCreateList}>
+            <label htmlFor="list-name">Create a list</label>
+            <div className="inline-form">
+              <input
+                id="list-name"
+                value={newListName}
+                onChange={(event) => setNewListName(event.target.value)}
+                placeholder="Sprint notes"
+              />
+              <button type="submit">Add</button>
+            </div>
+          </form>
+
+          <div className="list-block">
+            <div className="section-heading">
+              <h2>Lists</h2>
+              <span>{lists.length}</span>
+            </div>
+            <div className="list-column">
+              {listsLoading ? <p className="muted-copy">Loading local replica...</p> : null}
+              {!listsLoading && lists.length === 0 ? (
+                <p className="muted-copy">No lists yet. Create one and it will sync through Postgres.</p>
+              ) : null}
+              {lists.map((list) => (
+                <button
+                  key={list.id}
+                  type="button"
+                  className={`list-card ${selectedListId === list.id ? 'is-selected' : ''}`}
+                  onClick={() => setSelectedListId(list.id)}
+                >
+                  <span>{list.name}</span>
+                  <small>{formatTimestamp(list.created_at)}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        <main className="board">
+          <div className="board-header">
+            <div>
+              <p className="eyebrow">Active list</p>
+              <h2>{selectedList?.name ?? 'Create your first list'}</h2>
+            </div>
+            <div className="stats-grid">
+              <div className="stat-card">
+                <strong>{todos.length}</strong>
+                <span>items</span>
+              </div>
+              <div className="stat-card">
+                <strong>{completedCount}</strong>
+                <span>done</span>
+              </div>
+              <div className="stat-card">
+                <strong>{todos.length - completedCount}</strong>
+                <span>open</span>
+              </div>
+            </div>
+          </div>
+
+          {status.dataFlowStatus?.downloadError ? (
+            <div className="banner is-error">Download error: {status.dataFlowStatus.downloadError.message}</div>
+          ) : null}
+          {status.dataFlowStatus?.uploadError ? (
+            <div className="banner is-error">Upload error: {status.dataFlowStatus.uploadError.message}</div>
+          ) : null}
+
+          <form className="composer" onSubmit={handleCreateTodo}>
+            <label htmlFor="todo-description">Add a todo</label>
+            <div className="inline-form">
+              <input
+                id="todo-description"
+                value={newTodoDescription}
+                onChange={(event) => setNewTodoDescription(event.target.value)}
+                placeholder={selectedList ? 'Write locally, sync automatically' : 'Create a list first'}
+                disabled={!selectedList}
+              />
+              <button type="submit" disabled={!selectedList}>
+                Queue write
+              </button>
+            </div>
+          </form>
+
+          <section className="todo-panel">
+            <div className="section-heading">
+              <h2>Todos</h2>
+              <span>{todos.length}</span>
+            </div>
+
+            {todosLoading ? <p className="muted-copy">Waiting for local data...</p> : null}
+
+            {!todosLoading && selectedList && todos.length === 0 ? (
+              <p className="muted-copy">This list is empty. Add a todo to see optimistic local writes and sync in action.</p>
+            ) : null}
+
+            {!selectedList ? <p className="muted-copy">Select a list on the left or create a new one.</p> : null}
+
+            <div className="todo-list">
+              {todos.map((todo) => (
+                <article key={todo.id} className={`todo-card ${todo.completed === 1 ? 'is-complete' : ''}`}>
+                  <label className="todo-toggle">
+                    <input
+                      type="checkbox"
+                      checked={todo.completed === 1}
+                      onChange={() => handleToggleTodo(todo.id)}
+                    />
+                    <span>{todo.description}</span>
+                  </label>
+                  <div className="todo-meta">
+                    <small>{todo.completed_at ? `Completed ${formatTimestamp(todo.completed_at)}` : `Created ${formatTimestamp(todo.created_at)}`}</small>
+                    <button type="button" className="ghost-button" onClick={() => handleDeleteTodo(todo.id)}>
+                      Delete
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        </main>
+      </div>
   )
 }
 
