@@ -1,23 +1,29 @@
-import { PowerSyncDatabase } from '@powersync/web'
-import { connector } from './connector'
-import { appSchema } from './schema'
+// even excluding the type and just using 'any' doesn't make a difference.
+// import type { PowerSyncDatabase } from "@powersync/web";
+import { useEffect, useState } from "react";
 
-export const powerSync = new PowerSyncDatabase({
-  schema: appSchema,
-  database: {
-    dbFilename: 'starter.db',
-  },
-})
+let dbInstance: any | null = null;
 
-let started = false
+export function useClientPowerSync() {
+  const [db, setDb] = useState<any | null>(dbInstance);
 
-export function startPowerSync() {
-  if (started) {
-    return
-  }
+  useEffect(() => {
+    if (dbInstance) return;
+    let isMounted = true;
 
-  started = true
-  powerSync.connect(connector, {
-    crudUploadThrottleMs: 750,
-  })
+    // Dynamic import ensures Vite excludes wa-sqlite and wasm from the SSR bundle
+    import("./powersync-setup").then(async ({ initPowerSync }) => {
+      const instance = await initPowerSync();
+      dbInstance = instance;
+      if (isMounted) {
+        setDb(instance);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  return db;
 }
